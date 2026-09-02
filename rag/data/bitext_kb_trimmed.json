@@ -1,0 +1,86 @@
+[
+  {
+    "id": "faq_order_01",
+    "intent": "track_order",
+    "category": "Order Management",
+    "title": "How to Track Your Order",
+    "content": "You can track your order in real-time by navigating to 'My Account' > 'Orders' and selecting 'Track Package'. You will also receive an email and SMS with a tracking number and direct carrier link as soon as your package is dispatched. Delivery typically takes 2-4 business days for standard shipping and 1-2 business days for express shipping."
+  },
+  {
+    "id": "faq_order_02",
+    "intent": "cancel_order",
+    "category": "Order Management",
+    "title": "Cancelling an Order",
+    "content": "Orders can be cancelled within 60 minutes of placing them by clicking 'Cancel Order' in the 'My Orders' section. Once an order enters the fulfillment/packing phase, it cannot be cancelled directly. However, you can refuse delivery or initiate a return once the package arrives."
+  },
+  {
+    "id": "faq_order_03",
+    "intent": "change_shipping_address",
+    "category": "Order Management",
+    "title": "Changing Delivery Address",
+    "content": "Shipping addresses can only be modified if the order is still in 'Processing' status. To update your address, go to 'My Orders' > 'Edit Order Details'. If the order has already shipped, please contact customer support or the delivery carrier directly with your tracking ID to request an address reroute."
+  },
+  {
+    "id": "faq_refund_01",
+    "intent": "refund_policy",
+    "category": "Returns & Refunds",
+    "title": "Standard Refund Policy",
+    "content": "We offer a 30-day money-back guarantee for unused items returned in their original packaging. Once our warehouse inspects the returned item, your refund will be processed to the original payment method within 5-7 business days. Shipping fees are non-refundable unless the return is due to a defective or incorrect item."
+  },
+  {
+    "id": "faq_refund_02",
+    "intent": "damaged_item",
+    "category": "Returns & Refunds",
+    "title": "Damaged or Defective Items Received",
+    "content": "If you receive a damaged, defective, or incorrect product, report it within 48 hours of delivery by submitting clear photos to support@example.com or via the 'Report Issue' button in your order history. We provide a free replacement or immediate full refund including all shipping costs."
+  },
+  {
+    "id": "faq_refund_03",
+    "intent": "exchange_product",
+    "category": "Returns & Refunds",
+    "title": "Product Exchanges",
+    "content": "To exchange an item for a different size or color, initiate a return via the Returns Portal and select 'Exchange'. Once your original item's return label is scanned by the courier, your replacement order will be dispatched automatically."
+  },
+  {
+    "id": "faq_billing_01",
+    "intent": "payment_methods",
+    "category": "Billing & Payments",
+    "title": "Accepted Payment Methods",
+    "content": "We accept Visa, MasterCard, American Express, PayPal, Apple Pay, Google Pay, and Klarna Pay-in-4. All transactions are securely processed with 256-bit SSL encryption. We do not store full credit card details on our servers."
+  },
+  {
+    "id": "faq_billing_02",
+    "intent": "duplicate_charge",
+    "category": "Billing & Payments",
+    "title": "Duplicate or Unexpected Charges",
+    "content": "If you see a pending duplicate charge on your bank statement, it is usually a temporary pre-authorization hold which drops off automatically within 3-5 business days. If the charge settles or persists, please reach out to our billing team with the transaction reference ID."
+  },
+  {
+    "id": "faq_account_01",
+    "intent": "password_reset",
+    "category": "Account & Security",
+    "title": "Resetting Your Account Password",
+    "content": "To reset your password, visit the login page and click 'Forgot Password'. Enter the email address associated with your account, and we will send a password reset link valid for 24 hours. Check your spam folder if the email does not arrive within a few minutes."
+  },
+  {
+    "id": "faq_account_02",
+    "intent": "delete_account",
+    "category": "Account & Security",
+    "title": "Account Deletion & Data Privacy",
+    "content": "You can request account deletion and removal of personal data under GDPR/CCPA by visiting 'Settings' > 'Privacy' > 'Delete Account'. Account deletion is permanent and removes all order history, reward points, and saved addresses after a 14-day grace period."
+  },
+  {
+    "id": "faq_shipping_01",
+    "intent": "international_shipping",
+    "category": "Shipping & Delivery",
+    "title": "International Shipping Rates and Customs",
+    "content": "We ship to over 50 countries worldwide. International delivery times range between 7 to 14 business days. Customs duties and import taxes may apply depending on your destination country's regulations and are paid directly at checkout (DDP) where available."
+  },
+  {
+    "id": "faq_support_01",
+    "intent": "contact_human_support",
+    "category": "Support Escalation",
+    "title": "Contacting Human Customer Support",
+    "content": "Our human support team is available Monday through Friday, 8:00 AM to 8:00 PM EST. You can reach us via live chat, email at support@example.com, or phone at 1-800-555-0199. Urgent escalation requests outside operating hours are prioritized on the next business morning."
+  }
+]
