@@ -17,6 +17,7 @@ export async function getChatModel(): Promise<BaseChatModel> {
     modelProvider: config.modelProvider,
     apiKey: config.apiKey,
     temperature: 0.2,
+    maxTokens: 250, // Added upper bound for AI I/O tokens
   });
 
   return chatModelInstance;

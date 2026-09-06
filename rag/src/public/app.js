@@ -68,6 +68,7 @@ function MessageItem({ msg }) {
 
 function App() {
   const [sessionId, setSessionId] = useState(() => `sess_${Date.now()}`);
+  const [sessions, setSessions] = useState([]);
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
@@ -81,6 +82,74 @@ function App() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
+  const fetchSessions = async () => {
+    try {
+      const res = await fetch('/api/sessions');
+      const data = await res.json();
+      setSessions(data.sessions || []);
+    } catch (err) {
+      console.warn("Failed to fetch sessions", err);
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId })
+        });
+      } catch (err) {
+        console.warn("Failed to create initial session", err);
+      }
+      fetchSessions();
+    })();
+  }, []);
+
+  const loadSession = async (id) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/sessions/${id}`);
+      const data = await res.json();
+      const loadedMessages = data.history.map((m, idx) => ({
+        id: `loaded_${idx}`,
+        sender: m.sender,
+        text: m.text,
+        timestamp: '',
+        sources: []
+      }));
+      if (loadedMessages.length === 0) {
+        loadedMessages.push({
+          id: 'welcome_reset',
+          sender: 'bot',
+          text: "How can I help you today with orders, returns, shipping, or account policies?",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          sources: []
+        });
+      }
+      setMessages(loadedMessages);
+      setSessionId(id);
+    } catch (err) {
+      console.error("Failed to load session", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteSession = async (e, id) => {
+    e.stopPropagation();
+    try {
+      await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
+      if (sessionId === id) {
+        handleNewChat();
+      }
+      fetchSessions();
+    } catch (err) {
+      console.error("Failed to delete session", err);
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -90,17 +159,6 @@ function App() {
   }, [messages, loading]);
 
   const handleNewChat = async () => {
-    if (loading) return;
-    try {
-      await fetch('/api/chat/clear', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId }),
-      });
-    } catch (err) {
-      console.warn("Failed to clear session on backend", err);
-    }
-
     const newId = `sess_${Date.now()}`;
     setSessionId(newId);
     setMessages([
@@ -113,11 +171,27 @@ function App() {
       }
     ]);
     setInput('');
+
+    try {
+      await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: newId })
+      });
+      await fetchSessions();
+    } catch (err) {
+      console.warn("Failed to create session on server", err);
+    }
   };
 
   const handleSendMessage = async (textToSend) => {
     const query = textToSend || input.trim();
     if (!query || loading) return;
+    
+    if (query.length > 200) {
+      alert("Please keep your question under 200 characters.");
+      return;
+    }
 
     const userMessage = {
       id: Date.now().toString(),
@@ -137,11 +211,12 @@ function App() {
         body: JSON.stringify({ message: query, sessionId }),
       });
 
+      const data = await res.json();
+      
       if (!res.ok) {
-        throw new Error(`Server returned status: ${res.status}`);
+        throw new Error(data.error || `Server returned status: ${res.status}`);
       }
 
-      const data = await res.json();
       if (data.sessionId) {
         setSessionId(data.sessionId);
       }
@@ -155,12 +230,13 @@ function App() {
       };
 
       setMessages((prev) => [...prev, botMessage]);
+      fetchSessions();
     } catch (err) {
       console.error(err);
       const errorMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: "Sorry, I encountered an issue retrieving the answer. Please try again or reach out to human support at support@example.com.",
+        text: err.message || "Sorry, I encountered an issue retrieving the answer. Please try again or reach out to human support at support@example.com.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         sources: [],
       };
@@ -176,6 +252,43 @@ function App() {
   };
 
   return html`
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <button class="new-chat-btn" onClick=${handleNewChat} title="Start a fresh conversation">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span>New Chat</span>
+        </button>
+      </div>
+      <div class="sessions-list">
+        ${sessions.length === 0 && html`
+          <div style="padding: 24px 12px; text-align: center; color: var(--text-dim); font-size: 0.8rem;">
+            No conversations saved yet.
+          </div>
+        `}
+        ${sessions.map((s) => html`
+          <div 
+            class=${`session-item ${s.id === sessionId ? 'active' : ''}`} 
+            onClick=${() => loadSession(s.id)}
+            key=${s.id}
+          >
+            <div class="session-info">
+              <span class="session-preview">${s.preview}</span>
+              <span class="session-time">${new Date(s.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <button class="delete-session-btn" onClick=${(e) => deleteSession(e, s.id)} title="Delete Session">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+        `)}
+      </div>
+    </div>
+
+    <!-- Main Chat Area -->
     <div class="chat-container">
       <!-- Header -->
       <header class="chat-header">
@@ -191,12 +304,6 @@ function App() {
           </div>
         </div>
         <div class="header-actions">
-          <button class="new-chat-btn" onClick=${handleNewChat} title="Start a fresh conversation and clear memory">
-            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            <span>New Chat</span>
-          </button>
           <span class="badge-tag">Bitext KB</span>
         </div>
       </header>
@@ -240,8 +347,9 @@ function App() {
             class="chat-input"
             placeholder="Ask a follow-up or any support question..."
             value=${input}
-            onInput=${(e) => setInput(e.target.value)}
+            onInput=${(e) => setInput(e.target.value.substring(0, 200))}
             disabled=${loading}
+            maxLength="200"
           />
           <button type="submit" class="send-btn" disabled=${loading || !input.trim()}>
             <span>Send</span>
@@ -250,6 +358,9 @@ function App() {
             </svg>
           </button>
         </form>
+        <div style="text-align: right; font-size: 0.7rem; color: var(--text-dim); margin-top: 4px;">
+          ${input.length} / 200
+        </div>
       </div>
     </div>
   `;

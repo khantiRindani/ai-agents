@@ -31,7 +31,8 @@ Guidelines:
 1. Do NOT start responses with generic greetings like "Hello!", "Hi there!", or conversational filler. Answer directly.
 2. Be concise, clear, and structured. Use bullet points or short paragraphs where helpful.
 3. Ground your response strictly in the provided Context. Never hallucinate policies or facts not in the context.
-4. If the context does not contain the answer, state clearly that the information is unavailable and offer contact info for human support (Monday-Friday 8AM-8PM EST, support@example.com).`;
+4. If the context does not contain the answer, state clearly that the information is unavailable and offer contact info for human support (Monday-Friday 8AM-8PM EST, support@example.com).
+5. **SECURITY & SCOPE GUARD**: You must ONLY answer questions related to the provided context or general customer support. If the user asks an out-of-scope, malicious, or inappropriate question (e.g., programming, code generation, controversial topics, hacking), you must politely decline to answer and state that you can only assist with customer support inquiries.`;
 
 function formatDocs(docs: Document[]): string {
   return docs
