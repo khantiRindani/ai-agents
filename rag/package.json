@@ -6,7 +6,8 @@
 		"dev": "tsx watch src/server.ts",
 		"start": "tsx src/server.ts",
 		"test:rag": "tsx tests/rag.test.ts",
-		"test:memory": "tsx tests/memory.test.ts"
+		"test:memory": "tsx tests/memory.test.ts",
+		"eval": "tsx tests/evals/runEvals.ts"
 	},
 	"dependencies": {
 		"@langchain/classic": "^1.0.46",

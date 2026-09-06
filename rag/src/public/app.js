@@ -24,17 +24,17 @@ function MessageItem({ msg }) {
   const isUser = msg.sender === 'user';
 
   // Render markdown safely
-  const renderedContent = isUser 
-    ? msg.text 
+  const renderedContent = isUser
+    ? msg.text
     : marked.parse(msg.text || '');
 
   return html`
     <div class="message-row ${isUser ? 'user' : 'bot'}">
       <div class="bubble">
-        ${isUser 
-          ? html`<p>${msg.text}</p>`
-          : html`<div class="markdown-body" dangerouslySetInnerHTML=${{ __html: renderedContent }} />`
-        }
+        ${isUser
+      ? html`<p>${msg.text}</p>`
+      : html`<div class="markdown-body" dangerouslySetInnerHTML=${{ __html: renderedContent }} />`
+    }
 
         ${!isUser && msg.sources && msg.sources.length > 0 && html`
           <div class="sources-container">
@@ -187,7 +187,7 @@ function App() {
   const handleSendMessage = async (textToSend) => {
     const query = textToSend || input.trim();
     if (!query || loading) return;
-    
+
     if (query.length > 200) {
       alert("Please keep your question under 200 characters.");
       return;
@@ -212,7 +212,7 @@ function App() {
       });
 
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || `Server returned status: ${res.status}`);
       }
@@ -299,7 +299,7 @@ function App() {
             </svg>
           </div>
           <div class="brand-info">
-            <h1>SupportAI Assistant</h1>
+            <h1>Customer Support AI Assistant</h1>
             <p>RAG Knowledge Base • Multi-turn Memory</p>
           </div>
         </div>

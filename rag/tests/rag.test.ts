@@ -1,25 +1,43 @@
 import 'dotenv/config';
+import assert from 'node:assert/strict';
 import { askSupportAssistant } from '../src/ragChain.js';
 
-async function testRAG() {
-  console.log('=== Testing Support RAG System ===\n');
+async function testRAGSmoke() {
+  console.log('\n=============================================================');
+  console.log(' 🔌 RAG PIPELINE INTEGRATION & SMOKE TEST                    ');
+  console.log('=============================================================\n');
 
-  const queries = [
-    "How can I track my order delivery?",
-    "Can I return an item after 20 days?",
-    "What payment methods do you support?"
-  ];
+  const testQuery = "What is your return policy?";
+  const testSessionId = `smoke_test_${Date.now()}`;
 
-  for (const q of queries) {
-    console.log(`\n Question: "${q}"`);
-    const res = await askSupportAssistant(q);
-    console.log(` Answer:\n${res.answer}`);
-    console.log(` Sources (${res.sources.length}):`);
-    res.sources.forEach((s, idx) => {
-      console.log(`   [${idx + 1}] ${s.title} (${s.category})`);
-    });
-    console.log('--------------------------------------------------');
-  }
+  console.log(`Executing smoke query: "${testQuery}" (Session: ${testSessionId})...`);
+  const startTime = Date.now();
+  const res = await askSupportAssistant(testQuery, testSessionId);
+  const durationMs = Date.now() - startTime;
+
+  // 1. Validate response contract structure
+  assert(res && typeof res === 'object', 'Response must be an object');
+  assert(typeof res.answer === 'string' && res.answer.trim().length > 0, 'Response answer must be a non-empty string');
+  assert(Array.isArray(res.sources), 'Response sources must be an array');
+  assert.equal(res.sessionId, testSessionId, 'Response sessionId must match input sessionId');
+
+  // 2. Validate source document contract
+  assert(res.sources.length > 0, 'Expected at least 1 retrieved source document');
+  const firstSource = res.sources[0];
+  assert(typeof firstSource.id === 'string', 'Source document must include string id');
+  assert(typeof firstSource.title === 'string', 'Source document must include string title');
+  assert(typeof firstSource.category === 'string', 'Source document must include string category');
+  assert(typeof firstSource.excerpt === 'string', 'Source document must include string excerpt');
+
+  console.log(`\n✅ Contract verified:`);
+  console.log(`   - Answer length: ${res.answer.length} chars`);
+  console.log(`   - Retrieved sources: ${res.sources.length} (${res.sources.map(s => s.title).join(', ')})`);
+  console.log(`   - Roundtrip duration: ${durationMs}ms`);
+
+  console.log('\n🎉 RAG PIPELINE SMOKE TEST PASSED!\n');
 }
 
-testRAG().catch(console.error);
+testRAGSmoke().catch((err) => {
+  console.error('\n❌ RAG Smoke Test Failed:', err);
+  process.exit(1);
+});
