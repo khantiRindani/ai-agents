@@ -1,0 +1,72 @@
+[
+  {
+    "id": "tc-001",
+    "quest": "What are the trade-offs between vector databases for production RAG systems?",
+    "expected_topics": [
+      "indexing methods (HNSW, IVF, flat)",
+      "latency vs. recall trade-off",
+      "cost: managed vs. self-hosted",
+      "scalability and throughput",
+      "filtering and hybrid search support"
+    ],
+    "min_sources": 5,
+    "min_coverage_score": 7.0,
+    "domain": "AI/ML Infrastructure"
+  },
+  {
+    "id": "tc-002",
+    "quest": "What are the key risks and mitigation strategies for deploying LLMs in healthcare?",
+    "expected_topics": [
+      "hallucination risks in clinical settings",
+      "HIPAA / data privacy compliance",
+      "bias and fairness in medical AI",
+      "human-in-the-loop requirements",
+      "regulatory landscape (FDA, EU AI Act)"
+    ],
+    "min_sources": 5,
+    "min_coverage_score": 7.0,
+    "domain": "AI Safety / Healthcare"
+  },
+  {
+    "id": "tc-003",
+    "quest": "How do leading AI companies approach AI safety and alignment in 2025?",
+    "expected_topics": [
+      "constitutional AI and RLHF approaches",
+      "safety teams and red-teaming",
+      "model evaluations and evals frameworks",
+      "interpretability and mechanistic understanding",
+      "governance and policy positions"
+    ],
+    "min_sources": 6,
+    "min_coverage_score": 7.5,
+    "domain": "AI Safety"
+  },
+  {
+    "id": "tc-004",
+    "quest": "What is the current state of quantum computing and its practical applications?",
+    "expected_topics": [
+      "qubit types and leading hardware platforms",
+      "error correction progress",
+      "near-term NISQ applications",
+      "quantum advantage milestones",
+      "timeline estimates to practical utility"
+    ],
+    "min_sources": 5,
+    "min_coverage_score": 7.0,
+    "domain": "Quantum Computing"
+  },
+  {
+    "id": "tc-005",
+    "quest": "Compare serverless vs. container-based architectures for modern web applications.",
+    "expected_topics": [
+      "cold start latency in serverless",
+      "cost models: pay-per-invocation vs. reserved compute",
+      "state management challenges",
+      "vendor lock-in considerations",
+      "when to choose each approach"
+    ],
+    "min_sources": 4,
+    "min_coverage_score": 7.0,
+    "domain": "Cloud Architecture"
+  }
+]
