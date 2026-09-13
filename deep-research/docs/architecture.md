@@ -149,7 +149,7 @@ If any single query fails after 3 retries, it logs a warning and is skipped — 
 - Drives the graph conditional edge via its output values
 
 #### Writer (`src/nodes/writer.py`)
-- Uses `streaming=True` — Gradio captures `on_chat_model_stream` events
+- Uses `streaming=True` — Gradio captures `on_chat_model_stream` events filtered by `metadata["langgraph_node"] == "writer"`
 - Builds a citation index from terrain (dedup by URL, assign `[N]` indices)
 - Prompt asks for: Executive Summary → sections per waypoint → Known Unknowns → Sources
 - Returns `treasure_map` (full Markdown) and `sources` (deduplicated list)
@@ -170,7 +170,7 @@ graph.astream_events(initial_state, version="v2")
         ├─ event: on_chain_end  {name: "critic"}
         │         └─► Update Expedition Log with score + gaps
         │
-        ├─ event: on_chat_model_stream   ← Writer LLM tokens
+        ├─ event: on_chat_model_stream  [langgraph_node == "writer"]
         │         └─► Append token to Treasure Map panel (live)
         │
         ├─ event: on_chain_end  {name: "writer"}
@@ -180,7 +180,7 @@ graph.astream_events(initial_state, version="v2")
                   └─► Show final stats (score, source count)
 ```
 
-Gradio's `queue()` + async generator bridge enables this without websocket setup. The `fn=run_cartographer` is an `async def` generator that `yield`s `(log, map)` tuples on each event.
+Gradio's `queue()` + async generator bridge enables this without websocket setup. The `fn=run_cartographer` is an `async def` generator that `yield`s `(log, map)` tuples on each event. Non-writer token streams (such as critic or planner internal calls) are explicitly filtered via event metadata (`metadata.get("langgraph_node") == "writer"`).
 
 ---
 

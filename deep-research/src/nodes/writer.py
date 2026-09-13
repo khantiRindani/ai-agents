@@ -92,7 +92,7 @@ async def writer_node(state: CartographerState) -> dict:
 
     response = await llm.ainvoke(messages)
     treasure_map = response.content
-
+ 
     trace_entry = {
         "node": "writer",
         "status": "done",

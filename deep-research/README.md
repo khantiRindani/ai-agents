@@ -2,6 +2,8 @@
 
 > *"Submit your Quest. Receive the Treasure Map."*
 
+![Cartographer Demo](docs/assets/cartographer_demo.png)
+
 A domain-agnostic deep research agent that autonomously plans, searches, critiques, and synthesizes web knowledge into a cited research report.
 
 ## Project Summary
@@ -88,7 +90,7 @@ OPENAI_API_KEY=sk-...
 The Writer node uses a streaming LLM (`streaming=True`). The Gradio UI and Jupyter notebook both consume `graph.astream_events(input, version="v2")`:
 
 - **Expedition Log** updates after each node via `on_chain_end` events
-- **Treasure Map** streams tokens live via `on_chat_model_stream` events
+- **Treasure Map** streams tokens live via `on_chat_model_stream` events (filtered by `metadata["langgraph_node"] == "writer"`)
 
 ---
 

@@ -71,7 +71,7 @@ This document records the key design decisions made during v1 development, the a
 | `ainvoke` + poll final state | Simpler code | No streaming — user waits for full execution with no feedback |
 | `astream` (output-level) | Simpler than astream_events | Returns full node outputs, not individual LLM tokens |
 
-**Rationale**: For a research agent that takes 60–120 seconds, a blank UI while waiting is a poor experience. `astream_events` enables two distinct streaming behaviours simultaneously: node-level progress (Expedition Log) and token-level output (Treasure Map). This required `version="v2"` which is the stable API as of LangGraph 0.2+.
+**Rationale**: For a research agent that takes 60–120 seconds, a blank UI while waiting is a poor experience. `astream_events` enables two distinct streaming behaviours simultaneously: node-level progress (Expedition Log) and token-level output (Treasure Map). This required `version="v2"` which is the stable API as of LangGraph 0.2+. Furthermore, filtering `on_chat_model_stream` events explicitly by `metadata["langgraph_node"] == "writer"` ensures that token-level streaming from other chat model nodes (e.g., Critic or Planner) is not inadvertently output to the user-facing report area.
 
 ---
 

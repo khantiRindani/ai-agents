@@ -163,7 +163,7 @@ class CartographerState(TypedDict):
 - **Model**: Configurable (default: Gemini Flash, `streaming=True`)
 - **Input**: full state
 - **Prompt strategy**: Instructs structured Markdown with inline citations `[N]`
-- **Streaming**: Enabled — Gradio captures `on_chat_model_stream` events
+- **Streaming**: Enabled — Gradio captures `on_chat_model_stream` events filtered by `langgraph_node == "writer"`
 - **Output**: `treasure_map`, `sources` (deduplicated, indexed)
 
 ### 4.5 Streaming Contract
@@ -171,12 +171,12 @@ class CartographerState(TypedDict):
 ```
 graph.astream_events(state, version="v2")
 │
-├── on_chain_end {name: "planner"}   → update Expedition Log
-├── on_chain_end {name: "explorer"}  → update Expedition Log
-├── on_chain_end {name: "critic"}    → update Expedition Log
-├── on_chat_model_stream             → append token to Treasure Map panel
-├── on_chain_end {name: "writer"}    → update Expedition Log (final entry)
-└── on_chain_end {name: "LangGraph"} → display final stats
+├── on_chain_end {name: "planner"}                      → update Expedition Log
+├── on_chain_end {name: "explorer"}                     → update Expedition Log
+├── on_chain_end {name: "critic"}                       → update Expedition Log
+├── on_chat_model_stream [langgraph_node == "writer"]   → append token to Treasure Map panel
+├── on_chain_end {name: "writer"}                       → update Expedition Log (final entry)
+└── on_chain_end {name: "LangGraph"}                    → display final stats
 ```
 
 ---
