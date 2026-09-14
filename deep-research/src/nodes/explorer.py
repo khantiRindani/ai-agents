@@ -7,6 +7,9 @@ Appends results to state["terrain"] — using operator.add reducer.
 """
 from __future__ import annotations
 
+import time
+
+from src.logger import logger
 from src.state import CartographerState
 from src.tools.search import parallel_search
 
@@ -17,6 +20,7 @@ async def explorer_node(state: CartographerState) -> dict:
     On first expedition: searches Waypoints.
     On re-expeditions: searches Uncharted Zones to fill coverage gaps.
     """
+    t0 = time.perf_counter()
     expedition_count = state.get("expedition_count", 0)
     is_reexpedition = expedition_count > 0 and bool(state.get("uncharted_zones"))
 
@@ -29,7 +33,10 @@ async def explorer_node(state: CartographerState) -> dict:
         label = "Expedition #1"
         log_prefix = "🔍"
 
+    logger.info(f"[Explorer] Starting {label} for {len(queries)} queries: {queries}")
     new_results = await parallel_search(queries)
+    duration_ms = (time.perf_counter() - t0) * 1000
+    logger.info(f"[Explorer] {label} completed in {duration_ms:.1f}ms with {len(new_results)} new results")
 
     trace_entry = {
         "node": "explorer",

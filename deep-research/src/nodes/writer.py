@@ -9,9 +9,12 @@ from this node to stream tokens to the UI in real time.
 """
 from __future__ import annotations
 
+import time
+
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from src.llm_factory import build_llm
+from src.logger import logger
 from src.state import CartographerState, Source
 
 WRITER_SYSTEM = """\
@@ -72,6 +75,8 @@ async def writer_node(state: CartographerState) -> dict:
     Synthesizes the Treasure Map from all collected terrain.
     Uses streaming LLM — Gradio captures tokens via astream_events.
     """
+    t0 = time.perf_counter()
+    logger.info(f"[Writer] Starting report synthesis for quest: {state['quest']!r} ({len(state['terrain'])} terrain items)")
     llm = build_llm(streaming=True)  # Streaming enabled for real-time Gradio output
 
     source_section, sources = _build_sources(state["terrain"])
@@ -92,6 +97,11 @@ async def writer_node(state: CartographerState) -> dict:
 
     response = await llm.ainvoke(messages)
     treasure_map = response.content
+    duration_ms = (time.perf_counter() - t0) * 1000
+    logger.info(
+        f"[Writer] Report synthesis complete in {duration_ms:.1f}ms: "
+        f"{len(sources)} sources, {len(treasure_map)} chars"
+    )
  
     trace_entry = {
         "node": "writer",

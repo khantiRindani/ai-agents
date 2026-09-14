@@ -10,10 +10,13 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import time
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from src.llm_factory import build_llm
+from src.logger import logger
 from src.state import CartographerState
 
 CRITIC_SYSTEM = """\
@@ -46,6 +49,41 @@ Rules:
 """
 
 
+def _extract_critic_json(text: str) -> dict:
+    """Extract critic JSON object from LLM response, handling markdown fences and extraneous text."""
+    text = text.strip()
+
+    # 1. Direct parse attempt
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+
+    # 2. Markdown code fence match
+    code_block_match = re.search(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", text, re.DOTALL | re.IGNORECASE)
+    if code_block_match:
+        try:
+            data = json.loads(code_block_match.group(1).strip())
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+
+    # 3. Regex object match
+    brace_match = re.search(r"(\{[\s\S]*?\})", text, re.DOTALL)
+    if brace_match:
+        try:
+            data = json.loads(brace_match.group(1).strip())
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+
+    raise ValueError("Could not extract a valid JSON object from Critic response.")
+
+
 def _build_terrain_summary(state: CartographerState, max_chars: int = 8000) -> str:
     """Compact terrain into a string for the critic prompt (avoid huge context)."""
     lines = []
@@ -62,6 +100,8 @@ def _build_terrain_summary(state: CartographerState, max_chars: int = 8000) -> s
 
 async def critic_node(state: CartographerState) -> dict:
     """Scores terrain coverage and identifies gaps."""
+    t0 = time.perf_counter()
+    logger.info(f"[Critic] Evaluating coverage for quest: {state['quest']!r} (collected {len(state.get('terrain', []))} snippets)")
     llm = build_llm(streaming=False)  # Structured JSON output — no streaming
 
     terrain_summary = _build_terrain_summary(state)
@@ -79,28 +119,30 @@ async def critic_node(state: CartographerState) -> dict:
     response = await llm.ainvoke(messages)
     raw = response.content.strip()
 
-    # Strip markdown fences
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
-
     try:
-        parsed = json.loads(raw)
+        parsed = _extract_critic_json(raw)
         coverage_score = float(parsed.get("coverage_score", 5.0))
-        uncharted_zones = parsed.get("uncharted_zones", [])
-        reasoning = parsed.get("reasoning", "")
-    except (json.JSONDecodeError, ValueError, KeyError):
+        # Bound score between 0.0 and 10.0
+        coverage_score = max(0.0, min(10.0, coverage_score))
+        uncharted_zones = [str(z).strip() for z in parsed.get("uncharted_zones", []) if str(z).strip()]
+        reasoning = str(parsed.get("reasoning", "")).strip()
+    except Exception as exc:
         # Safe fallback — assume borderline coverage, don't loop forever
         coverage_score = 7.5
         uncharted_zones = []
-        reasoning = "Critic parse error — defaulting to pass."
+        reasoning = "Critic parse error — defaulting to safe pass."
+        logger.warning(f"[Critic] JSON parse failed, defaulting to 7.5 pass: {exc}. Raw: {raw[:200]!r}")
 
     threshold = float(os.getenv("CRITIC_SCORE_THRESHOLD", "7.0"))
+    duration_ms = (time.perf_counter() - t0) * 1000
     status_emoji = "✅" if coverage_score >= threshold else "⚠️"
     zone_msg = (
         f"Gaps: {', '.join(uncharted_zones)}" if uncharted_zones else "No gaps detected."
+    )
+
+    logger.info(
+        f"[Critic] Evaluation complete in {duration_ms:.1f}ms: "
+        f"score={coverage_score:.1f}/{threshold:.1f}, gaps={len(uncharted_zones)}, reason={reasoning!r}"
     )
 
     trace_entry = {

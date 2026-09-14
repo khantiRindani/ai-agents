@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | **Version** | v1 |
-| **Status** | ✅ Implemented |
-| **Date** | 2026-09-06 |
+| **Status** | ✅ Implemented & Refined |
+| **Date** | 2026-09-06 *(last updated: 2026-09-14)* |
 | **Author** | AI Builder Portfolio |
 | **Scope** | MVP — core research loop + Gradio UI + eval harness |
 
@@ -25,14 +25,14 @@ Answering a complex research question on the web is time-consuming and fragmente
 ## 2. Goals
 
 ### Must-Have (MVP)
-- [ ] Accept a natural-language research question as input
-- [ ] Automatically decompose into 3–5 focused sub-queries
-- [ ] Run parallel web searches per sub-query
-- [ ] Score research coverage using an LLM-as-judge rubric
-- [ ] Automatically re-search to fill identified coverage gaps (max 2 iterations)
-- [ ] Synthesize a structured, cited Markdown report
-- [ ] Stream the report output to a Gradio UI in real time
-- [ ] Run an eval suite of 5 curated test cases with pass/fail thresholds
+- [x] Accept a natural-language research question as input
+- [x] Automatically decompose into 3–5 focused sub-queries
+- [x] Run parallel web searches per sub-query
+- [x] Score research coverage using an LLM-as-judge rubric
+- [x] Automatically re-search to fill identified coverage gaps (max 2 iterations)
+- [x] Synthesize a structured, cited Markdown report
+- [x] Stream the report output to a Gradio UI in real time
+- [x] Run an eval suite of 5 curated test cases with pass/fail thresholds
 
 ### Nice-to-Have (future iterations)
 - LangSmith tracing integration
@@ -67,7 +67,7 @@ Answering a complex research question on the web is time-consuming and fragmente
 **Acceptance Criteria:**
 - Expedition Log shows each node step with status and summary
 - Treasure Map streams token-by-token as it is written
-- Coverage score is visible in the final status
+- Coverage score and elapsed time are visible in the final status
 
 ### US-03: Trigger deeper research automatically
 > As a user, I want the agent to recognize when initial results are insufficient
@@ -83,7 +83,7 @@ Answering a complex research question on the web is time-consuming and fragmente
 > so the system is not locked to any single provider.
 
 **Acceptance Criteria:**
-- `CARTOGRAPHER_LLM_PROVIDER` env var selects between `google`, `anthropic`, `openai`
+- `CARTOGRAPHER_LLM_PROVIDER` env var selects between `google`, `anthropic`, `openai`, `ollama`
 - `CARTOGRAPHER_LLM_MODEL` selects the specific model
 - No Python code change required
 
@@ -137,10 +137,11 @@ class CartographerState(TypedDict):
 ### 4.4 Node Specifications
 
 #### Planner Node
-- **Model**: Configurable (default: Gemini Flash, `streaming=False`)
+- **Model**: Configurable via `CARTOGRAPHER_LLM_PROVIDER` (default: `ollama/gemma3:4b`, `streaming=False`)
 - **Input**: `quest`
 - **Prompt strategy**: System prompt instructs JSON array output of 3–5 sub-queries
-- **Fallback**: If JSON parse fails, uses the full quest as a single waypoint
+- **JSON parsing**: Robust multi-strategy extraction (direct parse → markdown fence → regex bracket match)
+- **Fallback**: If all parse strategies fail, uses the full quest as a single waypoint
 - **Output**: `waypoints`, `expedition_count=0`, `terrain=[]`
 
 #### Explorer Node
@@ -152,18 +153,20 @@ class CartographerState(TypedDict):
 - **Output**: Appends to `terrain` (via `operator.add` reducer)
 
 #### Critic Node
-- **Model**: Configurable (default: Gemini Flash, `streaming=False`)
+- **Model**: Configurable (default: same provider as Planner, `streaming=False`)
 - **Input**: `quest`, `waypoints`, `terrain` (compact summary, max 8000 chars)
 - **Prompt strategy**: 5-dimension rubric → structured JSON output
 - **Threshold**: `CRITIC_SCORE_THRESHOLD` env var (default: 7.0)
-- **Fallback**: If JSON parse fails, defaults `coverage_score=7.5` (safe pass)
+- **JSON parsing**: Robust multi-strategy extraction (direct parse → markdown fence → regex brace match)
+- **Score bounding**: `coverage_score` clamped to `[0.0, 10.0]`
+- **Fallback**: If all parse strategies fail, defaults `coverage_score=7.5` (safe pass)
 - **Output**: `coverage_score`, `uncharted_zones`
 
 #### Writer Node
-- **Model**: Configurable (default: Gemini Flash, `streaming=True`)
+- **Model**: Configurable (default: same provider as Planner, `streaming=True`)
 - **Input**: full state
 - **Prompt strategy**: Instructs structured Markdown with inline citations `[N]`
-- **Streaming**: Enabled — Gradio captures `on_chat_model_stream` events filtered by `langgraph_node == "writer"`
+- **Streaming**: Enabled — Gradio captures `on_chat_model_stream` events filtered by `metadata["langgraph_node"] == "writer"`
 - **Output**: `treasure_map`, `sources` (deduplicated, indexed)
 
 ### 4.5 Streaming Contract
@@ -171,12 +174,21 @@ class CartographerState(TypedDict):
 ```
 graph.astream_events(state, version="v2")
 │
-├── on_chain_end {name: "planner"}                      → update Expedition Log
-├── on_chain_end {name: "explorer"}                     → update Expedition Log
-├── on_chain_end {name: "critic"}                       → update Expedition Log
-├── on_chat_model_stream [langgraph_node == "writer"]   → append token to Treasure Map panel
-├── on_chain_end {name: "writer"}                       → update Expedition Log (final entry)
-└── on_chain_end {name: "LangGraph"}                    → display final stats
+├── on_chain_end {name: "planner"}                                   → update Expedition Log
+├── on_chain_end {name: "explorer"}                                  → update Expedition Log
+├── on_chain_end {name: "critic"}                                    → update Expedition Log
+├── on_chat_model_stream [metadata.langgraph_node == "writer"]       → append token to Treasure Map panel
+├── on_chain_end {name: "writer"}                                    → update Expedition Log (final entry)
+└── on_chain_end {name: "LangGraph"}                                 → display final stats (score, sources, elapsed time)
+```
+
+### 4.6 Observability & Logging
+
+All nodes and the Gradio runner emit structured timestamped logs to stdout via the `cartographer` logger (`src/logger.py`). Log level is controlled by `CARTOGRAPHER_LOG_LEVEL` (default: `INFO`).
+
+To persist logs to a file:
+```bash
+python cartographer_gradio.py 2>&1 | tee logs/app.log
 ```
 
 ---
@@ -189,9 +201,11 @@ graph.astream_events(state, version="v2")
 | Search concurrency | Parallel (all waypoints at once) | `asyncio.gather` |
 | Max search retries | 3 per query | `tenacity` exponential backoff |
 | LLM provider | Provider-agnostic | `BaseChatModel` interface |
+| Supported providers | `google`, `anthropic`, `openai`, `ollama` | Swap via env, no code change |
 | Free-tier search | Tavily 1,000 credits/mo | ~50–100 quests/mo |
 | Critic loop limit | max 2 re-expeditions | Prevents infinite loops |
 | Context limit | 8,000 char terrain summary for Critic | Avoid context overflow |
+| Logging | Stdout with timestamps | Pipe to `tee` for file capture |
 
 ---
 
@@ -224,10 +238,13 @@ graph.astream_events(state, version="v2")
 - `.env.example` committed as template
 - No user data persisted in v1
 - Critic and Writer prompts include no user PII passthrough risk (quest is user-provided text only)
+- LLM factory validates API key presence and raises descriptive `EnvironmentError` on misconfiguration
 
 ---
 
 ## 8. Open Items for v2
+
+All v2 items are formally specified in [`docs/spec/v2_features.md`](./v2_features.md).
 
 | Item | Priority | Notes |
 |---|---|---|

@@ -7,11 +7,13 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from tavily import AsyncTavilyClient
 
+from src.logger import logger
 from src.state import SearchResult
 
 
@@ -29,7 +31,8 @@ def _build_client() -> AsyncTavilyClient:
     reraise=True,
 )
 async def _search_one(client: AsyncTavilyClient, query: str, max_results: int) -> list[SearchResult]:
-    """Single query search with retry. Returns empty list on final failure."""
+    """Single query search with retry. Returns list of SearchResult."""
+    t0 = time.perf_counter()
     try:
         response = await client.search(
             query=query,
@@ -48,10 +51,12 @@ async def _search_one(client: AsyncTavilyClient, query: str, max_results: int) -
                     published_date=r.get("published_date", ""),
                 )
             )
+        duration_ms = (time.perf_counter() - t0) * 1000
+        logger.info(f"[Search] Query: {query!r} -> {len(results)} results ({duration_ms:.1f}ms)")
         return results
     except Exception as exc:
-        # Log and re-raise for tenacity to handle
-        print(f"[Search] Warning: query failed — {query!r}: {exc}")
+        duration_ms = (time.perf_counter() - t0) * 1000
+        logger.warning(f"[Search] Attempt failed for {query!r} ({duration_ms:.1f}ms): {exc}")
         raise
 
 
@@ -89,4 +94,5 @@ async def parallel_search(
 
     # Sort by Tavily relevance score descending
     flat.sort(key=lambda r: r["score"], reverse=True)
+    logger.info(f"[Search] Parallel search complete: {len(queries)} queries -> {len(flat)} unique results")
     return flat
