@@ -1,8 +1,8 @@
-# Customer Support AI Assistant (RAG + LangChain + Gemini)
+# Beacon Customer Support AI Agent (RAG + LangChain + Gemini)
 
-A production-grade, eval-backed **Customer Support AI Assistant** featuring Retrieval-Augmented Generation (RAG) built with **LangChain.js**, **Google Gemini**, and a lightweight **Preact** frontend.
+A production-grade, eval-backed **Beacon Customer Support AI Agent** featuring Retrieval-Augmented Generation (RAG) built with **LangChain.js**, **Google Gemini**, and a lightweight **Preact** frontend.
 
-![Customer Support Assistant Demo](docs/assets/rag_assistant_demo.png)
+![Beacon Customer Support Agent Demo](docs/assets/rag_assistant_demo.png)
 
 ---
 
